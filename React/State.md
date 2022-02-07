@@ -43,4 +43,33 @@
 
     export default App;
     ```
-  * 따라서 위의 코드와 같이 setter 함수를 활용하여 이벤트 핸들러를 등록하면, 이벤트가 발생할 때마다 상태가 변하며 화면이 새로 그려지게 된다.
+  * 따라서 위의 코드와 같이 setter 함수를 활용하여 이벤트 핸들러를 등록하면, 이벤트가 발생할 때마다 상태가 변하며 화면이 새로 그려지게 된다.   
+     
+
+# 참조형 State
+* 자바 스크립트의 자료형은 크게 기본형과 참조형으로 나눌 수 있는데 참조형 값들은 state를 활용할 때 주의해야할 점이 있다.
+  ```
+  const [gameHistory, setGameHistory] = useState([]);
+
+    const handleRollClick = () => {
+      const nextNum = random(6);
+      gameHistory.push(nextNum);
+      setGameHistory(gameHistory); // state가 제대로 변경되지 않는다!
+    };
+  ```
+* 위의 코드처럼 배열값인 gameHistory에 push 메소드를 이용해서 배열의 값을 변경할 경우, 변경된 배열을 setter 함수로 state를 변경하려고 하면 코드가 제대로 동작하지 않는 걸 확인할 수 있다.
+* gameHistory state는 배열 값 자체를 가지고 있는 것이 아닌 배열의 주소값을 참조하고 있는 것이므로 push 메소드로 배열안의 요소를 변경해도 결과적으로 참조하는 배열의 주소값이 변경된 것이 아니기 때문이다.
+* 따라서 리액트는 gameHistory state가 참조하는 주소값이 여전히 같기 때문에 상태(state)기 바뀌었다고 판단하지 않게 된다. 그래서 **참조형 state를 활용할 때는 반드시 참조형 값을 만들어 state를 변경해야 한다.**
+  ```
+  // ... 
+
+    const [gameHistory, setGameHistory] = useState([]);
+
+    const handleRollClick = () => {
+      const nextNum = random(6);
+      setGameHistory([...gameHistory, nextNum]); // state가 제대로 변경된다!
+    };
+
+  // ...
+  ```
+* 위의 코드처럼 Spread 문법(...)을 활용해서 사용하는 방법이 간단하다. 
