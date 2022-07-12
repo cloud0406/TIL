@@ -1,3 +1,5 @@
+# NestJS
+
 ## 프로젝트 생성 및 실행
 
 - 프로젝트 시작 할 폴더 생성
@@ -63,6 +65,7 @@
 ## 모듈 생성하기
 
 - 모듈 생성 명령어
+
   ```jsx
   nest g module boards
 
@@ -106,6 +109,7 @@
 - 즉, 객체는 서로 다양한 관계를 만들 수 있으며 객체의 인스턴스를 “연결”하는 기능은 대부분 Nest 런타임 시스템에 위임될 수 있다.
 - Provider 사용하기 위해서는 Nest에 등록해줘야 함
 - 등록하기 위해서는 module 파일의 providers 항목안에 해당 모듈에서 사용하고자 하는 Provider를 넣어 주면 된다.
+
   ```jsx
   import { Module } from "@nestjs/common";
   import { BoardsController } from "./boards.controller";
@@ -134,6 +138,7 @@
   ```
 - CLI를 이용해 생성한 Service 파일은 Injectable
 - service를 controller에서 이용하기위해서는 클래스의 constructor안에서 Dependency Injection이 이뤄져야 함
+
   ```jsx
   import { Controller } from '@nestjs/common';
   import { BoardsService } from './boards.service';
@@ -154,6 +159,7 @@
   	}
   }
   ```
+
 - 기능을 만들기 위해서는 service에서 로직을 처리 후 controller에서 service를 불러와줌
 
 ## Model이란?
@@ -241,6 +247,7 @@
 
 - 아무 처리하지 않고 없는 아이디의 게시물을 가져오려 하면 결과값으로 아무 내용 없이 돌아옴
 - 에러를 표출하기 위해서는 NotFoundException()이라는 예외 인스턴스 사용
+
   ```jsx
   getBoardById(id: string): Board {
       const found = this.boards.find((board) => board.id === id);
@@ -291,6 +298,7 @@ export class BoardStatusValidationPipe implements PipeTransform {
   - TypeORM은 간단한코딩으로 ORM 프레임 워크를 사용하기 쉽다.
   - TypeORM은 다른 모듈과 쉽게 통합된다.
 - 설치 위한 모듈
+
   ```jsx
   @nestjs/typeorm  // NestJs에서 TypeORM 사용하기 위해 연동시켜주는 모듈
 
@@ -310,6 +318,7 @@ export class BoardStatusValidationPipe implements PipeTransform {
 - 객체와 관계형 데이터베이스의 데이터를 자동으로 변형 및 연결하는 작업
 - ORM을 이용한 개발은 객체와 데이터베이스의 변형에 유연하게 사용할 수 있다.
 - TypeORM vs Pure Javascript
+
   ```jsx
   // TypeORM 코드
   const boards = board.find({title: 'Hello', status: 'PUBLIC'});
@@ -324,6 +333,7 @@ export class BoardStatusValidationPipe implements PipeTransform {
   })
 
   ```
+
   - 같은 기능을 하는 코드지만 TypeORM의 코드가 훨씬 깔끔함
 
 ## TypeORM 애플리케이션 연결
@@ -399,6 +409,7 @@ export class Board extends BaseEntity {
 - 데이터베이스 관련 일 (INSERT, FIND, DELETE... 등) 은 서비스에서 하는 것이 아니라 레포지토리에서 수행 (Repository Pattern이라고 부름)
   - 브라우저에서 Request → Controller → Service → Repository → Service → Controller → 브라우저에 Response 전달
 - Repository 생성
+
   1. 리포지토리 파일 생성
      - board.repository.ts
   2. 생성한 파일에 리포지토리를 위한 클래스 생성
