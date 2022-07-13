@@ -65,7 +65,6 @@
 ## 모듈 생성하기
 
 - 모듈 생성 명령어
-
   ```jsx
   nest g module boards
 
@@ -109,7 +108,6 @@
 - 즉, 객체는 서로 다양한 관계를 만들 수 있으며 객체의 인스턴스를 “연결”하는 기능은 대부분 Nest 런타임 시스템에 위임될 수 있다.
 - Provider 사용하기 위해서는 Nest에 등록해줘야 함
 - 등록하기 위해서는 module 파일의 providers 항목안에 해당 모듈에서 사용하고자 하는 Provider를 넣어 주면 된다.
-
   ```jsx
   import { Module } from "@nestjs/common";
   import { BoardsController } from "./boards.controller";
@@ -138,7 +136,6 @@
   ```
 - CLI를 이용해 생성한 Service 파일은 Injectable
 - service를 controller에서 이용하기위해서는 클래스의 constructor안에서 Dependency Injection이 이뤄져야 함
-
   ```jsx
   import { Controller } from '@nestjs/common';
   import { BoardsService } from './boards.service';
@@ -159,7 +156,6 @@
   	}
   }
   ```
-
 - 기능을 만들기 위해서는 service에서 로직을 처리 후 controller에서 service를 불러와줌
 
 ## Model이란?
@@ -247,7 +243,6 @@
 
 - 아무 처리하지 않고 없는 아이디의 게시물을 가져오려 하면 결과값으로 아무 내용 없이 돌아옴
 - 에러를 표출하기 위해서는 NotFoundException()이라는 예외 인스턴스 사용
-
   ```jsx
   getBoardById(id: string): Board {
       const found = this.boards.find((board) => board.id === id);
@@ -298,7 +293,6 @@ export class BoardStatusValidationPipe implements PipeTransform {
   - TypeORM은 간단한코딩으로 ORM 프레임 워크를 사용하기 쉽다.
   - TypeORM은 다른 모듈과 쉽게 통합된다.
 - 설치 위한 모듈
-
   ```jsx
   @nestjs/typeorm  // NestJs에서 TypeORM 사용하기 위해 연동시켜주는 모듈
 
@@ -318,7 +312,6 @@ export class BoardStatusValidationPipe implements PipeTransform {
 - 객체와 관계형 데이터베이스의 데이터를 자동으로 변형 및 연결하는 작업
 - ORM을 이용한 개발은 객체와 데이터베이스의 변형에 유연하게 사용할 수 있다.
 - TypeORM vs Pure Javascript
-
   ```jsx
   // TypeORM 코드
   const boards = board.find({title: 'Hello', status: 'PUBLIC'});
@@ -333,7 +326,6 @@ export class BoardStatusValidationPipe implements PipeTransform {
   })
 
   ```
-
   - 같은 기능을 하는 코드지만 TypeORM의 코드가 훨씬 깔끔함
 
 ## TypeORM 애플리케이션 연결
@@ -409,7 +401,6 @@ export class Board extends BaseEntity {
 - 데이터베이스 관련 일 (INSERT, FIND, DELETE... 등) 은 서비스에서 하는 것이 아니라 레포지토리에서 수행 (Repository Pattern이라고 부름)
   - 브라우저에서 Request → Controller → Service → Repository → Service → Controller → 브라우저에 Response 전달
 - Repository 생성
-
   1. 리포지토리 파일 생성
      - board.repository.ts
   2. 생성한 파일에 리포지토리를 위한 클래스 생성
@@ -436,3 +427,612 @@ export class Board extends BaseEntity {
      })
      export class BoardsModule {}
      ```
+
+## Service에 Repository 넣어주기 (Repository Injection)
+
+```jsx
+@Injectable()
+export class BoardService {
+	constructor(
+	@InjectRepository(BoardRepository)
+	private boardRepository: BoardRepository,
+	) {}
+```
+
+- @Injectable() : 이 데코레이터를 이용해 이 서비스에서 BoardRepository를 이용한다고 알려주며 이것을 boardRepository 변수에 넣어준다.
+
+## 게시물 삭제하기 (remove vs delete) : DB연동
+
+### remove()
+
+- 무조건 존재하는 아이템만을 지울 수 있음. 그렇지 않으면 404 에러 발생
+
+### delete()
+
+- 만약 아이템이 존재하면 지우고 존재하지 않으면 아무 영향이 없음
+
+- 이 차이로 인해 remove는 하나의 아이템을 지울 때 두번 데이터베이스를 이용 (아이템 유무 + 지우기), delete는 데이터베이스에 한번만 접근
+  ```jsx
+  // Service 코드
+
+  async deleteBoard(id: number): Promise<void> {
+      const result = await this.boardRepository.delete(id);
+
+      // 만약 db에 없는 id값 전달할 경우 affected값 0으로 나옴 -> 에러메시지로 알려줌
+      if (result.affected === 0) {
+        throw new NotFoundException(`Can't find Board with id ${id}`);
+      }
+    }
+  ```
+  ```jsx
+  // Controller 코드
+
+  @Delete('/:id')
+    deleteBoard(@Param('id', ParseIntPipe) id): Promise<void> {
+      // ParseIntPipe가 id값이 숫자인지 체크하고 아니면 에러 발생
+      return this.boardsService.deleteBoard(id);
+    }
+  ```
+
+## 게시물 상태 업데이트 : DB 연동
+
+```jsx
+// Service 코드
+
+async updateBoardStatus(id: number, status: BoardStatus): Promise<Board> {
+    const board = await this.getBoardById(id);
+
+    board.status = status;
+    await this.boardRepository.save(board);
+
+    return board;
+  }
+```
+
+```jsx
+// Controller 코드
+
+@Patch('/:id/status')
+  // 게시물 update할때 status값 바꿔주므로 '유효성 체크'를 해줘야함
+  updateBoardStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status', BoardStatusValidationPipe) status: BoardStatus,
+  ) {
+    return this.boardsService.updateBoardStatus(id, status);
+  }
+```
+
+## 모든 게시물 가져오기
+
+```jsx
+// Service 코드
+
+async getAllBoards(): Promise<Board[]> {
+    return this.boardRepository.find();
+ }
+```
+
+```jsx
+// Controller 코드
+
+@Get()
+  getAllBoard(): Promise<Board[]> {
+    return this.boardsService.getAllBoards(); // 연결한 보드를 통해 BoardService의 메서드인 getAllBoards 사용 가능
+  }
+```
+
+## 인증 기능 구현을 위한 AuthModule 생성
+
+### CLI를 이용한 모듈, 컨트롤러, 서비스 생성
+
+```jsx
+nest g module auth
+    - auth 모듈 생성
+nest g controller auth —no-spec
+    - auth 컨트롤러 생성
+nest g service auth —no-spec
+    - auth 서비스 생성
+```
+
+### User를 위한 Entity 생성
+
+- 유저에 대한인증 구현하는 것이므로 유저가 필요 → 유저 데이터를 위한 유저 Entity 생성
+  1. user.entity.ts 파일 생성
+  2. 파일 소스 코드 작성
+
+### Repository 생성
+
+- User Entity를 생성, 수정, 삭제등의 로직 처리위해 Respository 생성
+  1. user.repository.ts 파일 생성
+  2. 파일 소스 코드 작성
+- 생성된 User Repository를 다른 곳에서도 사용하기 위해 auth module 에서 imports 안에 UserRepository를 넣어준다.
+
+### Repository Injection
+
+- User Repository를 auth Service 안에서 사용하기 위해 유저 리포지토리를 넣어줌
+
+## 유저 데이터 유효성 체크 (Class-validator)
+
+- 유효성 체크를 하기 위해서는 class-validator 모듈을 사용하면 된다.
+- Dto 파일에서 Request로 들어노는 값을 정의해주고 있기 때문에 Dto 파일에 값들 하나하나에 class-validator를 이용해서 유효성 조건을 넣는다.
+  ```jsx
+  export class AuthCredentialsDto {
+    @IsString()
+    @MinLength(4)
+    @MaxLength(20)
+    username: string;
+
+    @IsString()
+    @MinLength(4)
+    @MaxLength(20)
+    // 영어랑 숫자만 가능한 유효성 체크
+    @Matches(/^[a-zA-Z0-9]*$/, {
+      message: "password only accepts english and number",
+    })
+    password: string;
+  }
+  ```
+
+### ValidationPipe
+
+- 요청이 컨트롤러에 있는 핸들러로 들어왔을 때 Dto에 있는 유효성 조건에 맞게 체크를 해주려면 ValidationPipe을 넣어줘야 한다.
+  ```jsx
+  @Controller('auth')
+  export class AuthController {
+    constructor(private authService: AuthService) {}
+
+    @Post('/signup')
+    signUp(
+  		// validationpipe를 넣어줘야 유효성 검사 가능
+      @Body(ValidationPipe) authCredentialsDto: AuthCredentialsDto,
+    ): Promise<void> {
+      return this.authService.signUp(authCredentialsDto);
+    }
+  }
+  ```
+
+### 유저 이름에 유니크한 값 주기
+
+1. repository에서 findOne 메소드 사용해서 이미 같은 유저 이름 가진 아이디 있는지 체크 → 없다면 데이터 저장 (이 방법은 데이터 베이스 처리를 2번 해줘야함)
+2. 데이터베이스 레벨에서 만약 같은 이름을 가진 유저가 있다면 에러 던져줌
+
+   ```jsx
+   @Entity()
+   @Unique(["username"]) // @Unique로 username 필드 값을 유니크한 값으로 체크하도록 지정
+   export class User extends BaseEntity {
+     @PrimaryGeneratedColumn()
+     id: number;
+
+     @Column()
+     username: string;
+
+     @Column()
+     password: string;
+   }
+   ```
+
+   - 이를 테스트하면 500, ‘Internet server error’가 뜨는데 이유는 NestJs에서 에러가 발생하고 그걸 try catch 구문인 catch에서 잡아주지 않으면 이 에러가 Controller 레벨로 가서 그냥 500 에러를 던짐 → 따라서 반드시 try catch 구문으로 에러를 잡아줘야 함
+     ```jsx
+     export class UserRepository extends Repository<User> {
+       async createUser(authCredentialsDto: AuthCredentialsDto): Promise<void> {
+         const { username, password } = authCredentialsDto;
+         const user = this.create({ username, password });
+
+         try {
+           await this.save(user);
+         } catch (error) {
+           // console.log('error',error)로 미리 에러 종류 확인 후 해당 에러 발생시 원하는 에러 문구 출력
+           if (error.errno === 1062) {
+             console.log(error.code);
+             throw new ConflictException("Existing username");
+           } else {
+             console.log(error.code);
+             throw new InternalServerErrorException();
+           }
+         }
+       }
+     }
+     ```
+
+   ## 비밀번호 암호화 하기
+
+   - 유저를 생성할 때 비밀번호가 그대로 저장되는데 이를 암호화 해서 저장하는 것 구현
+   - 구현 위해 ‘bcryptjs’라는 모듈 사용
+     ```jsx
+     npm install bcryptjs --save
+
+     import * as bcrypt from 'bcryptjs';
+     ```
+   - 비밀번호 데이터베이스 저장 방법
+     1. 원본 비밀번호 저장 (하면 안됨)
+     2. 비밀번호를 암호화 키(Encryption Key)와 함께 암호화 (양방향)
+        - 1234 → 암호화(알고리즘 + 암호화 키) → gUuFwNo4zkMV → 복호화 → 1234
+     3. SHA256등 Hash로 암호화해서 저장 (단방향 : 복호화 불가능)
+        - 1234 → 해시 → gUuFwNo4zkMV
+   - bcryptjs 모듈은 솔트(salt) + 비밀번호(Plain Password)를 해시Hash로 암호화 해서 저장, 암호화할 때 원래 비밀번호에 salt를 붙인 후 해시로 암호화 함 (위의 종류들보다 훨씬 안전)
+     - ex) A유저 pw: 1234 ⇒ kenfuduWssw_1234 ⇒ kfowekpfkweosodck
+     - ex) B유저 pw: 1234 ⇒ okdowmnxikjd_1234 ⇒ kodkimxjjxhdndnwjdj
+     ```jsx
+     async createUser(authCredentialsDto: AuthCredentialsDto): Promise<void> {
+         const { username, password } = authCredentialsDto;
+
+         const salt = await bcrypt.genSalt(); // 암호화 위한 salt값 생성
+         const hashedPassword = await bcrypt.hash(password, salt); // pw + salt 묶어서 암호화
+
+         const user = this.create({ username, password: hashedPassword });
+     }
+     ```
+
+   ## 로그인 기능 구현
+
+   ```jsx
+   // Service 코드
+
+   async signIn(authCredentialsDto: AuthCredentialsDto): Promise<string> {
+       const { username, password } = authCredentialsDto;
+       const user = await this.userRepository.findOne({ username });
+
+   // 해당 username의 유저가 있는지 체크 후 입력된 비밀번호와 db의 유저 비밀번호 비교
+       if (user && (await bcrypt.compare(password, user.password))) {
+         return 'login success';
+       } else {
+         throw new UnauthorizedException('login failed');
+       }
+     }
+   ```
+
+   ```jsx
+   // Controller  코드
+
+   @Post('/signin')
+     signin(@Body(ValidationPipe) authCredentialsDto: AuthCredentialsDto) {
+       return this.authService.signIn(authCredentialsDto);
+     }
+   ```
+
+   ## JWT (JSON Web Token)란?
+
+   - JWT는 당사자간에 정보를 JSON 개체로 안전하게 전송하기 위한 컴팩트하고 독립적인 방식을 정의하는 개방형 표준(RFC 7519)이다.
+   - 간단하게 얘기하면 정보를 안전하게 전할 때 혹은 유저의 권한 같은 것을 체크 하기 위해 사용하는 유용한 모듈이다.
+   - 구조
+     - Header : 토큰에 대한 메타 데이터 포함(타입, 해싱 알고리즘 - SHA256…)
+     - Payload : 유저 정보, 만료 기간, 주제 등
+     - Verify Signature : 어떤 식으로든 변경되지 않았는지 확인하는데 사용되는 서명, 서명은 헤더 및 페이로드 세그먼트, 서명 알고리즘, 비밀 또는 공캐 키를 사용하여 생성
+   - 사용 흐름
+     - 유저 로그인 → 토큰 생성(Hasing 알고리즘) → 토큰 보관
+     - 서버에서 요청에서 같이 온 headers와 payload를 가져오고 서버 안에 가지고 있는 Secret을 이용해 Signature 부분을 다시 생성, 둘이 일치하면 통과
+   - 필요한 모듈
+     ```jsx
+     @nestjs/jwt
+     	- nestjs에서 jwt를 사용하기 위해 필요한 모듈
+
+     @nestjs/passport
+     	- nestjs에서 passport를 사용하기 위해 필요한 모듈
+
+     passport
+     	- passport 모듈
+
+     passport jwt
+     	- jwt 모듈
+
+     npm install @nestjs/jwt @nestjs/passport passport passport-jwt --save
+
+     ```
+   - 어플리케이션에 JWT 모듈 등록
+     1. auth 모듈 imports에 넣기
+     ```jsx
+     @Module({
+       imports: [
+         // JWT모듈 등록
+         JwtModule.register({
+           secret: "Secret1234",
+           signOptions: {
+             expiresIn: 3600, // 3600초 : 1시간
+           },
+         }),
+         TypeOrmModule.forFeature([UserRepository]),
+       ],
+       controllers: [AuthController],
+       providers: [AuthService],
+     })
+     export class AuthModule {}
+     ```
+   - 어플리케이션에 Passport 모듈 등록하기
+     ```jsx
+     @Module({
+       imports: [
+         // passport 모듈 등록
+         PassportModule.register({ defaultStrategy: "jwt" }),
+
+         JwtModule.register({
+           secret: "Secret1234",
+           signOptions: {
+             expiresIn: 3600,
+           },
+         }),
+         TypeOrmModule.forFeature([UserRepository]),
+       ],
+       controllers: [AuthController],
+       providers: [AuthService],
+     })
+     export class AuthModule {}
+     ```
+
+## 로그인 성공 시 JWT를 이용해서 토큰 생성
+
+1.  Service의 SignIn 메소드에 생성 (이전에 Service에서 JWT를 가져와야함)
+
+    ```jsx
+    export class AuthService {
+      constructor(
+        @InjectRepository(UserRepository)
+        private userRepository: UserRepository,
+        private jwtService: JwtService,
+      ) {}
+    }
+    ```
+
+2.  토큰을 만들기 위해선 Secret과 Payload 필요, Payload에는 자신이 전달하고자 하는 정보 넣는다. (Role, 유저이름, 이메일 등… → 토큰으로 정보 가져갈 수 있기 때문에 민감한 정보는 넣으면 안됨)
+
+    - 이렇게 Payload 이용해서 JWT에서 토큰 만들때 Sign() 메소드 이용
+
+    ```jsx
+    // Service 코드
+
+    async signIn(
+        authCredentialsDto: AuthCredentialsDto,
+      ): Promise<{ accessToken: string }> {
+        const { username, password } = authCredentialsDto;
+        const user = await this.userRepository.findOne({ username });
+
+        if (user && (await bcrypt.compare(password, user.password))) {
+          // 유저 토큰 생성 (Secret + Payload) -> 토큰으로 정보 가져갈 수 있기 때문에 중요한 정보는 입력 x
+          const payload = { username };
+          // sign() 메소드에 payload 넣어주면 알아서 Secret과 Payload 합쳐서 access 토큰 만들어줌
+          const accessToken = await this.jwtService.sign(payload);
+          return { accessToken };
+        } else {
+          throw new UnauthorizedException('login failed');
+        }
+      }
+    ```
+
+    ```jsx
+    // Controller 코드
+
+    @Post('/signin')
+      signin(
+        @Body(ValidationPipe) authCredentialsDto: AuthCredentialsDto,
+      ): Promise<{ accessToken: string }> {
+        return this.authService.signIn(authCredentialsDto);
+      }
+    ```
+
+## 토큰 유효성 및 DB에 있는 유저인지 체크
+
+- Verify Signature 부분이 유효한지 먼저 확인
+- 유효하다면 Payload에 있는 유저이름 정보 이용해 데이터베이스에서 해당 유저의 정보 가져옴
+- 구현 순서
+  1. passport-jwt 모듈을 위한 타입 정의 모듈 필요
+  ```jsx
+  @types/passport-jwt
+  ```
+  1. jwt.strategy.ts 파일 생성
+  ```jsx
+  import { Strategy } from 'passport-jwt'; // 기본 'passport'가 아닌 'passport-jwt'에서 strategy import해야함
+  import { ExtractJwt } from 'passport-jwt';
+  import { User } from './user.entity';
+  import { UserRepository } from './user.repository';
+
+  // Jwt strategy를 다른 곳에서도 사용하기 위해 Injectable 사용
+  @Injectable()
+  // 'passport-jwt' 기능 사용하기 위해 PassportStrategy(Strategy) 상속 받음
+  export class JwtStrategy extends PassportStrategy(Strategy) {
+    constructor(
+      // 토큰 유효성 확인 후 유저 객체 DB에서 가져오기 위해 userRepository 주입
+      @InjectRepository(UserRepository)
+      private userRepository: UserRepository,
+    ) {
+  // super는 부모 컴포넌트 사용하기 위해서
+      super({
+        // 토큰 유효한지 체크용
+        secretOrKey: 'Secret1234',
+        // 토큰 어디서 가져오는지 (BearerToken 타입인지) 확인
+        jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      });
+    }
+
+    async validate(payload) {
+      // payload안에 유저 이름이 DB에 있는지 확인
+      const { username } = payload;
+      const user: User = await this.userRepository.findOne({ username });
+
+      if (!user) {
+        throw new UnauthorizedException();
+      }
+      return user;
+    }
+  }
+  ```
+- 위에서 만든 JwtStrategy를 AuthModule 에서 사용하기 위해 AuthModule Providers 항목에 넣어주고 다른 곳에서도 JwtStrategy와 PassportModule도 사용해줘야 하기 때문에 exports 항목에 넣어줌.
+  ```jsx
+  @Module({
+    imports: [
+      // 유저 인증위해 사용할 기본 strategy 명시
+      PassportModule.register({ defaultStrategy: "jwt" }),
+      // jwt 인증 부분을 담당, 주로 sign()을 위한 부분
+      JwtModule.register({
+        secret: "Secret1234",
+        signOptions: {
+          expiresIn: 3600, // 3600초 : 1시간, 이후에는 더 이상 토큰이 유효하지 않음
+        },
+      }),
+      TypeOrmModule.forFeature([UserRepository]),
+    ],
+    controllers: [AuthController],
+    // JwtStrategy를 이 Auth 모듈에서 사용할수 있게 등록
+    providers: [AuthService, JwtStrategy],
+    // JwtStrategy, passportModule을 다른 모듈에서 사용할 수 있게 등록
+    exports: [JwtStrategy, PassportModule],
+  })
+  export class AuthModule {}
+  ```
+- UseGuards안에 @nestjs/passport에서 가져온 AuthGuard()를 이용하면 요청안에 유저 정보 넣을 수 있음
+  ```jsx
+  @Post('/test')
+  // UseGuards 사용해서 요청안에 유저 객체 정보 넣음
+    @UseGuards(AuthGuard()) // 토큰이 없거나 잘못됬으면 "Unauthorized" 에러 메세지를 보냄
+    test(@Req() req) {
+      console.log('req', req);
+    }
+
+  ```
+- 위의 코드에서 유저 객체를 얻을 때 ‘req.user’가 아닌 바로 user라는 파라미터로 가져오기 위해선 ‘커스텀 데코레이터’를 이용해야 함
+- NestJS에는 여러가지 미들웨어가 다른 목적을 가지며 사용됨
+  - Pipes : 요청 유효성 검사 및 페이로드 변환을 위해 만들어짐, 데이터를 예상한대로 직렬화
+  - Filters : 오류 처리 미들웨어, 특정 오류 처리기를 사용할 경로와 각 경로 주변의 복잡성을 관리하는 방법을 알 수 있음
+  - Guards : 인증 미들웨어, 지정된 경로로 통과할 수 있는 사람과 허용되지 않는 사람을 서버에 알려줌
+  - Interceptors : 인터셉터는 응답 매핑 및 캐시 관리와 함께 요청 로깅과 같은 전후 미들웨어, 각 요청 전후에 이를 실행하는 기능은 매우 강력하고 유용하다.
+  - 미들웨어가 불러지는 순서
+    - middleware → guard → interceptor (before) → pipe → controller → service → controller → interceptor (after) → filter (if applicate) → client
+
+## 커스텀 데코레이션
+
+```jsx
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { User } from "./user.entity";
+
+export const GetUser = createParamDecorator(
+  (data, ctx: ExecutionContext): User => {
+    // request 객체 안에 user정보가 들어있다는 전제하에 사용하므로 controller에서 @UseGuards 를 우선적으로 사용하고 있어야 함
+    const req = ctx.switchToHttp().getRequest(); // req에 유저 객체 정보가 담김
+    return req.user;
+  }
+);
+```
+
+- 위와 같이 user.decorator 파일 생성해서 사용하면
+
+```jsx
+@Post('/test')
+  // UseGuards 사용해서 요청안에 유저 객체 정보 넣음
+  @UseGuards(AuthGuard()) // 토큰이 없거나 잘못됬으면 "Unauthorized" 에러 메세지를 보냄
+  test(@GetUser() user: User) {
+    console.log('user', user);
+  }
+```
+
+- 컨트롤러에서 위와 같이 req정보를 원하는 변수로 사용 가능하다 (UseGuards 사용하고 있어야 함)
+
+## 인증된 유저만 게시물 보고 쓸 수 있게 만들기
+
+### 유저에게 권한 주기
+
+1. 인증에 관한 모듈을 board 모듈에서 쓸 수 있어야 하므로 boardModule에서 인증 모듈 imports 해야함 (이렇게 하면 AuthModule에서 export하는 어떤 거이든 board Module에서 사용 가능)
+
+   ```jsx
+   @Module({
+     imports: [TypeOrmModule.forFeature([BoardRepository]), AuthModule],
+     controllers: [BoardsController],
+     providers: [BoardsService],
+   })
+   export class BoardsModule {}
+   ```
+
+2. UseGuards(AuthGuard()) 이용해서 유저가 요청을 줄 때 올바른 토큰을 가지고 요청을 주는지 확인 후 게시물에 접근 권한 줌, AuthGuard는 각각의 라우트 별로 줄 수도 있고 한번에 하나의 컨트롤러 안에 들어있는 모든 라우트에 줄 수도 있음
+
+   ```jsx
+   Controller('boards')
+   @UseGuards(AuthGuard()) // 컨트롤러 레벨로 줘서 모든 핸들러가 영향 받음
+   export class BoardsController {
+     constructor(private boardsService: BoardsService) {}
+     // 생략..
+   ```
+
+## 유저와 게시물의 관계 형성
+
+- 게시물을 생성할 때 어떤 유저가 생성했는지 정보를 같이 넣어줘야 함
+  1. 관계 형성을 위해 엔티티에 서로간의 필드를 넣어줘야 함
+
+     1. 유저의 입장에선 OneToMany Relationship : 하나의 유저가 여러 게시판 생성 가능
+     2. 게시물의 입장에선 ManyToOne Relationship : 게시글 하나를 여러명이 작성할 순 없으므로
+     3. 파라미터는 총 3개 (1. Type, 2. InverseSide : board에서 유저로 접근하려면 board user로 접근해야함, 3. Option : (eager : true 일때는 user 정보를 가져올때 board도 같이 가져옴)
+
+     ```jsx
+     // board entity
+
+     @Entity()
+     export class Board extends BaseEntity {
+       @PrimaryGeneratedColumn()
+       id: number;
+
+       @Column()
+       title: string;
+
+       @Column()
+       description: string;
+
+       @Column()
+       status: BoardStatus;
+
+       @ManyToOne((type) => User, (user) => user.boards, { eager: false })
+       user: User;
+     }
+     ```
+
+     ```jsx
+     // user entity
+
+     @Entity()
+     @Unique(["username"])
+     export class User extends BaseEntity {
+       @PrimaryGeneratedColumn()
+       id: number;
+
+       @Column()
+       username: string;
+
+       @Column()
+       password: string;
+
+       @OneToMany((Type) => Board, (board) => board.user, { eager: true })
+       boards: Board[];
+     }
+     ```
+
+## 게시물 생성할 때 유저 정보 넣기
+
+- 유저와 게시물의 관계를 엔티티를 이용해 형성해 준 후 실제로 게시물을 생성할 때 유저 정보를 게시물에 넣어줘야 함
+  - 게시물 생성 요청 → 헤더안에 있는 토큰으로 유저 정보 → 유저 정보와 게시물 관계 형성하며 게시물 생성
+    ```jsx
+    // controller 코드
+    @Post()
+      @UsePipes(ValidationPipe)
+      createBoard(
+        @Body() CreateBoardDto: CreateBoardDto,
+        @GetUser() user: User,
+      ): Promise<Board> {
+        return this.boardsService.createBoard(CreateBoardDto, user);
+      }
+    ```
+    ```jsx
+    // board Repositoy
+    export class BoardRepository extends Repository<Board> {
+      async createBoard(
+        createBoardDto: CreateBoardDto,
+        user: User,
+      ): Promise<Board> {
+        const { title, description } = createBoardDto;
+
+        const board = this.create({
+          // this는 현재 리포지토리
+          title,
+          description,
+          status: BoardStatus.PUBLIC,
+          user,
+        });
+
+        await this.save(board);
+        return board;
+      }
+    ```
