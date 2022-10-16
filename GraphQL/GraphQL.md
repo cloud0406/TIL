@@ -20,3 +20,58 @@
     }
   }
   ```
+
+## Rest API vs GraphQL
+
+- REST API는 URL, METHOD등을 조합하여 다양한 Endpoint가 존재하지만 gql은 단 하나의 Endpoint만 존재한다. (REST API는 여러 Resource에 접근할 때 여러번의 요청이 필요하지만 GraphQL은 한번의 요청으로 다양한 Resource에 접근 가능)
+- REST API에서는 각 Endpoint마다 데이터베이스 SQL 쿼리가 달라지는 반면, gql API는 gql 스키마의 타입마다 데이터베이스 SQL 쿼리가 달라진다.
+- REST에서는 Resource의 크기와 형태를 서버에서 결정하지만, GraphQL에서는 Resource에 대한 정보만 정의하고, 필요한 크기와 형태는 client단에서 요청 시 결정함.
+- REST에서는 URI가 Resource를 나타내고 Method가 작업의 유형을 나타내지만, GraphQL에서는 GraphQL Schema가 Resource를 나타내고 Query, Mutation 타입이 작업의 유형을 나타냄.
+- REST에서 각 요청은 해당 엔드포인트에 정의된 핸들링 함수를 호출하여 작업하지만, GraphQL에서는 요청 받은 각 필드에 대한 resolver를 호출하여 작업 처리
+
+- gql API를 사용하면 여러번 네트워크 호출 필요 없이 한번의 네트워크 호출로 처리 가능
+- REST API 요청과 응답
+  ```json
+  [GET] /books/1
+
+  {
+    "title": "Romance of the Three Kingdoms",
+    "author": {
+      "firstName": "Luo",
+      "lastName": "Guanzhong"
+    }
+  }
+  ```
+- GraphQL 요청
+  ```graphql
+  # Type 지정 (형태만 지정한 상태)
+  type Book {
+    id: ID
+    title: String
+    author: Author
+  }
+  type Author {
+    id: ID
+    firstName: String
+    lastName: String
+    books: [Book]
+  }
+
+  # 지정한 형태에 접근할 수 있도록 query 타입이 필요
+  type Query {
+    book(id: ID!): Book
+    author(id: ID!): Author
+  }
+
+  # 요청 방법
+  /graphql?query={ book(id: "1") { title, author { firstName } } }
+  ```
+  ```json
+  // 응답 데이터
+  {
+    "title": "Black Hole Blues",
+    "author": {
+      "firstName": "Janna"
+    }
+  }
+  ```
