@@ -31,6 +31,7 @@
 
 - gql API를 사용하면 여러번 네트워크 호출 필요 없이 한번의 네트워크 호출로 처리 가능
 - REST API 요청과 응답
+
   ```json
   [GET] /books/1
 
@@ -42,8 +43,10 @@
     }
   }
   ```
+
 - GraphQL 요청
-  ```graphql
+
+  ```typescript
   # Type 지정 (형태만 지정한 상태)
   type Book {
     id: ID
@@ -66,6 +69,7 @@
   # 요청 방법
   /graphql?query={ book(id: "1") { title, author { firstName } } }
   ```
+
   ```json
   // 응답 데이터
   {
@@ -75,3 +79,40 @@
     }
   }
   ```
+
+## 스키마/타입(schema/type)
+
+- 스키마란 **데이터 타입의 집합**으로 클라이언트, 서버 개발자같의 의사소통 비용을 줄이고 빠르게 개발할 수 있게 돕는 API 문서 역할을 담당한다.
+- GraphQL의 query 형태는 리턴되는 값과 거의 일치하기 때문에 API 설계 전 사용할 스키마를 정의해야 한다.
+- 타입 (Type)
+
+  - 스키마의 핵심 단위로, 커스텀 객체로 작성하여 이를 통해 애플리케이션의 핵심 기능을 알 수 있다.
+
+    ```typescript
+    type Character {
+      name: String!
+      appearsIn: [Episode!]!
+    }
+
+    // 오브젝트 타입 : Character
+    // 필드 : name, appearsIn
+    // 스칼라 타입 : String, ID, Int 등
+    // 느낌표(!) : 필수 값을 의미(non-nullable)
+    // 대괄호([, ]) : 배열을 의미(array)
+    ```
+
+  - 스키마 대부분의 타입은 위와 같은 일반 객체 타입이지만 특수한 2가지 타입인 qeury, mutation 타입이 존재한다.
+
+## Query, Mutation, Subscription
+
+- http 요청을 할 때 GET, POST, DELTE, PATCH 등의 메서드가 제공되는 것처럼 GraphQL 또한 query, mutation, subscription이라는 3가지 요청 방식이 제공됨
+- query
+  - 읽기 전용 메서드
+  - 데이터 변화 필요 없이 단순 조회가 필요할 때 사용
+  - 객체 단위로 가져와서 사용 (이름, 변수, 필드 총 3가지 구성요소로 이루어짐)
+- mutation
+  - 데이터 변경한 후 가져오기 위한 메서드
+  - 요청을 통해 데이터 변경할 때 사용
+- subscription
+  - 실시간으로 변경된 데이터를 가져오기 위한 요청 방식
+  - 웹소켓을 통해 소켓 통신을 열어두고 데이터 업데이트 시 알리는 방식
