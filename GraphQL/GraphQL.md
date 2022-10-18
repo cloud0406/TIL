@@ -116,3 +116,57 @@
 - subscription
   - 실시간으로 변경된 데이터를 가져오기 위한 요청 방식
   - 웹소켓을 통해 소켓 통신을 열어두고 데이터 업데이트 시 알리는 방식
+
+## GraphQL 구조
+
+- gql은 서버와 클라이언트 사이의 GrpahQL이라는 service broker 레이어가 더 들어가, 해당 레이어가 클라이언트에서 쿼리를 선언하면 데이터를 절차적으로 처리하며 이러한 구조로 인해 클라이언트는 서버를 알 필요가 없이 GraphQL 레이어랑만 통신함으로써 데이터를 가져올 수 있다. (기존의 클라이언트에서 데이터를 조합하던 역할이 GraphQL로 옮겨진 것)
+- gql에서는 쿼리와 뮤테이션을 나눔 → 데이터를 읽을때는(R) 쿼리를 사용, 데이터를 변조할때는(CUD) 뮤테이션을 사용
+- 오퍼레이션 네임 쿼리는 쿼리용 함수라고 생각 → REST API를 호출할때와는 다르게 한번의 인터넷 네트워크 왕복으로 원하는 모든 데이터 가져올 수 있음 (데이터베이스의 프로시져는 DBA 혹은 백엔드프로그래머가 작성, 관리하지만 gql 오퍼레이션 네임 쿼리는 클라이언트 프로그래머가 작성, 관리함
+  ```graphql
+  # 차이점은 변수를 매개변수로 받느냐 아니냐이다.
+
+  # 일반 쿼리
+  {
+    human(id: "1000") {
+      name
+      height
+    }
+  }
+
+  # 오퍼레이션 네임 쿼리
+  query HeroNameAndFriends($episode: Episode) {
+    hero(episode: $episode) {
+      name
+      friends {
+        name
+      }
+    }
+  }
+
+  query getStudentInfomation($studentId: ID){
+    personalInfo(studentId: $studentId) {
+      name
+      address1
+      address2
+      major
+    }
+    classInfo(year: 2018, studentId: $studentId) {
+      classCode
+      className
+      teacher {
+        name
+        major
+      }
+      classRoom {
+        id
+        maintainer {
+          name
+        }
+      }
+    }
+    SATInfo(schoolCode: 0412, studentId: $studentId) {
+      totalScore
+      dueDate
+    }
+  }
+  ```
