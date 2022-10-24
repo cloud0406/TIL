@@ -22,3 +22,31 @@
   2. /usr/bin/docker는 /var/run/docker.sock 유닉스 소켓을 사용해 도커 데몬에게 명령어 전달
   3. 도커 데몬은 이 명령어를 파싱하고 명령어에 해당하는 작업 수행
   4. 수행 결과를 도커 클라이언트에 반환하고 사용자에게 결과 출력
+
+## Docker daemon
+
+- 우분투에서는 도커가 설치되면 자동으로 서비스로 등록되므로 호스트가 재시작되더라도 자동으로 실행
+- 도커 데몬은 일반적으로 아래의 명령어로 시작 및 정지 가능
+  ```tsx
+  service docker start // 시작
+  service docker stop // 정지
+  ```
+- service 사용하지 않고 dockerd로 직접 도커 데몬 실행도 가능
+  ```tsx
+  sudo dockerd
+
+  // 명령어 확인
+  sudo dockerd --help
+  ```
+  - 직접 도커 데몬을 실행하면 하나의 터미널을 차지하는 포그라운드(foreground) 상태로 실행되므로 운영 및 관리 측면에서 바람직하지 않고, 실제 운영 환경에서는 직접 실행하기보다는 service, systemctl 명령어를 통해 리눅스 서비스로 관리
+- 직접 도커 데몬 실행
+  ```tsx
+  dockerd -H tcp://0.0.0.:2375 -insecure-registry=192.168.100.99:5000 -tls=false
+  ```
+- 서비스로 실행
+  ```tsx
+  DOCKER_OPTS =
+    "-H tcp://0.0.0.0:2375 --insecure-registry=192.168.100.99:5000 --tls=false";
+  ```
+  - 두 방법 모두 도커 데몬을 설정
+  - 직접 도커 데몬을 실행하는가, 서비스로 실행하는가의 차이
