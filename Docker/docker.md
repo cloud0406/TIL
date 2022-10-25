@@ -32,13 +32,16 @@
   service docker stop // 정지
   ```
 - service 사용하지 않고 dockerd로 직접 도커 데몬 실행도 가능
+
   ```tsx
   sudo dockerd
 
   // 명령어 확인
   sudo dockerd --help
   ```
+
   - 직접 도커 데몬을 실행하면 하나의 터미널을 차지하는 포그라운드(foreground) 상태로 실행되므로 운영 및 관리 측면에서 바람직하지 않고, 실제 운영 환경에서는 직접 실행하기보다는 service, systemctl 명령어를 통해 리눅스 서비스로 관리
+
 - 직접 도커 데몬 실행
   ```tsx
   dockerd -H tcp://0.0.0.:2375 -insecure-registry=192.168.100.99:5000 -tls=false
@@ -50,3 +53,20 @@
   ```
   - 두 방법 모두 도커 데몬을 설정
   - 직접 도커 데몬을 실행하는가, 서비스로 실행하는가의 차이
+
+## Docker , Virtual machine
+
+- 도커는 virtual machine이 아님
+
+```tsx
+// 도커에서 해당 명령 실행할 경우
+$ docker run --name ubuntu_test ubuntu
+
+// 결과 : 아무 변화 없음 -> 컨테이너 목록 보면 종료(exit)되었다고 나타남
+$ docker ps -a
+d8f31b2635d9    ubuntu    "/bin/bash"   19 seconds ago  Exited (0) 17 seconds ago   ubuntu_test
+
+```
+
+- 우분투 image를 실행했는데 왜 아무것도 실행되지 않고 종료 될까? → Docker 컨테이너는 Virtual machine과 같이 하나의 온전한 서버를 제공하는 것이 아니라 명령을 실행하는 환경만 제공하고 명령을 실행할 뿐임
+- 즉, 우분투 서버가 실행되는 것이 아니라 “/bin/bash”가 실행될 뿐 (Virtual machine과 Docker 컨테이너의 가장 큰 차이)
