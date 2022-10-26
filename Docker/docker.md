@@ -70,3 +70,30 @@ d8f31b2635d9    ubuntu    "/bin/bash"   19 seconds ago  Exited (0) 17 seconds ag
 
 - 우분투 image를 실행했는데 왜 아무것도 실행되지 않고 종료 될까? → Docker 컨테이너는 Virtual machine과 같이 하나의 온전한 서버를 제공하는 것이 아니라 명령을 실행하는 환경만 제공하고 명령을 실행할 뿐임
 - 즉, 우분투 서버가 실행되는 것이 아니라 “/bin/bash”가 실행될 뿐 (Virtual machine과 Docker 컨테이너의 가장 큰 차이)
+
+## Docker api 조사
+
+- 필요기능에 따른 API **세부스펙 조사**
+  - create 부분 예시
+    ```tsx
+    { // 해당 코드에서 AttachStdin값이 무엇을 나타내는지.. 변경하면 어떤식으로 처리 되는지 등 정리
+    "Hostname": "",
+    "Domainname": "",
+    "User": "",
+    "AttachStdin": false,
+    "AttachStdout": true,
+    "AttachStderr": true,
+    "Tty": false,
+    "OpenStdin": false,
+    "StdinOnce": false,
+    ```
+  - 해당 API를 구현한 npm module이 있는지 조사 및 있다면 검증(test 해보기)
+- Engine API에서 확인 : [https://docs.docker.com/engine/api/v1.41/](https://docs.docker.com/engine/api/v1.41/)
+- 필요 기능 (Engine API)
+  - 컨테이너 목록 조회 : [containers] - [list containers]
+    - all : 모든 컨테이너 리턴 / 디폴트 값으로, 구동되고 있는 컨테이너만 보여짐
+    - limit : 가장 최근에 생성한 컨테이너 번호 리턴
+    - size : 컨테이너 크기 리턴
+    - filters : 특정 필터처리 적용한 컨테이너만 리턴
+      - ancestor, before, expose… 등 사용가능한 filter 참고
+  - 컨테이너 생성 : [containers] - [create]
