@@ -97,3 +97,10 @@ d8f31b2635d9    ubuntu    "/bin/bash"   19 seconds ago  Exited (0) 17 seconds ag
     - filters : 특정 필터처리 적용한 컨테이너만 리턴
       - ancestor, before, expose… 등 사용가능한 filter 참고
   - 컨테이너 생성 : [containers] - [create]
+- **docker stop / 🐳 docker kill 차이**
+  - docker stop은 Gracefully(우아)하게 작업을 중지. 이 뜻은, 하고 있는 작업을 마친 후에 컨테이너를 중지한다는 것
+  - docker kill 또한 컨테이너를 **중지**합니다. (중지 및 삭제의 숏컷이 아닙니다! 주의하세요!) docker stop과의 차이점은 stop이 gracefully하게 컨테이너를 중지시키는 반면 kill은 어떠한 작업도 기다리지 않고 즉각 중지
+- **🐳 docker create / 🐳 docker start / 🐳 docker run 차이**
+  - **Docker create :** 도커 이미지에서 새로운 컨테이너를 생성합니다. 그러나 즉시 실행되지는 않습니다
+  - **Docker start :** 중지된 컨테이너를 시작합니다. docker create 명령을 사용하여 컨테이너를 만든 경우 이 명령으로 시작할 수 있습니다.
+  - **Docker run :** create와 start의 조합으로 새 컨테이너를 생성하고 시작합니다. docker run 명령은 로컬 시스템에서 이미지를 찾지 못하는 경우 Docker Hub에서 이미지를 가져와서 컨테이너를 생성하고 실행합니다.
