@@ -105,3 +105,53 @@ function Todos() {
   );
 }
 ```
+
+## **useQuery 동기적으로 실행**
+
+- `enabled` 옵션을 사용하면 useQuery를 동기적으로 사용 가능
+- useQuery의 3번째 인자로 옵션값이 들어가는데 그 옵션의 enabled에 값을 넣으면 그 값이 true일때 useQuery를 실행한다. 이것을 이용하면 동기적으로 함수를 실행 할 수 있음.
+
+```jsx
+const { data: todoList, error, isFetching } = useQuery("todos", fetchTodoList);
+const {
+  data: nextTodo,
+  error,
+  isFetching,
+} = useQuery("nextTodos", fetchNextTodoList, {
+  enabled: !!todoList, // true가 되면 fetchNextTodoList를 실행한다
+});
+```
+
+## **useQueries**
+
+- useQuery를 비동기로 여러개 실행할 경우 여러 귀찮은 경우가 생김
+
+```jsx
+const usersQuery = useQuery("users", fetchUsers);
+const teamsQuery = useQuery("teams", fetchTeams);
+const projectsQuery = useQuery("projects", fetchProjects);
+
+// 어짜피 세 함수 모두 비동기로 실행하는데, 세 변수를 개발자는 다 기억해야하고 세 변수에 대한 로딩, 성공, 실패처리를 모두 해야한다.
+```
+
+- 이때 `promise.all`처럼 useQuery를 하나로 묶을 수 있는데, 그것이 `useQueries`입니다. `promise.all`과 마찬가지로 하나의 배열에 각 쿼리에 대한 상태 값이 객체로 들어옵니다.
+
+```jsx
+// 아래 예시는 롤 룬과, 스펠을 받아오는 예시입니다.
+const result = useQueries([
+  {
+    queryKey: ["getRune", riot.version],
+    queryFn: () => api.getRunInfo(riot.version),
+  },
+  {
+    queryKey: ["getSpell", riot.version],
+    queryFn: () => api.getSpellInfo(riot.version),
+  },
+]);
+
+useEffect(() => {
+  console.log(result); // [{rune 정보, data: [], isSucces: true ...}, {spell 정보, data: [], isSucces: true ...}]
+  const loadingFinishAll = result.some((result) => result.isLoading);
+  console.log(loadingFinishAll); // loadingFinishAll이 false이면 최종 완료
+}, [result]);
+```
