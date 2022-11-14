@@ -134,7 +134,7 @@ const projectsQuery = useQuery("projects", fetchProjects);
 // 어짜피 세 함수 모두 비동기로 실행하는데, 세 변수를 개발자는 다 기억해야하고 세 변수에 대한 로딩, 성공, 실패처리를 모두 해야한다.
 ```
 
-- 이때 `promise.all`처럼 useQuery를 하나로 묶을 수 있는데, 그것이 `useQueries`입니다. `promise.all`과 마찬가지로 하나의 배열에 각 쿼리에 대한 상태 값이 객체로 들어옵니다.
+- 이때 `promise.all`처럼 useQuery를 하나로 묶을 수 있는데, 그것이 `useQueries`입니다. `promise.all`과 마찬가지로 하나의 배열에 각 쿼리에 대한 상태 값이 객체로 들어온다.
 
 ```jsx
 // 아래 예시는 롤 룬과, 스펠을 받아오는 예시입니다.
@@ -154,4 +154,102 @@ useEffect(() => {
   const loadingFinishAll = result.some((result) => result.isLoading);
   console.log(loadingFinishAll); // loadingFinishAll이 false이면 최종 완료
 }, [result]);
+```
+
+## **unique key 활용**
+
+- unique key를 배열로 넣으면 query함수 내부에서 변수로 사용 가능.
+- 아래와 같이 사용 가능. `params`를 주목.
+
+```jsx
+const riot = {
+  version: "12.1.1",
+};
+
+const result = useQueries([
+  {
+    queryKey: ["getRune", riot.version],
+    queryFn: (params) => {
+      console.log(params); // {queryKey: ['getRune', '12.1.1'], pageParam: undefined, meta: undefined}
+
+      return api.getRunInfo(riot.version);
+    },
+  },
+  {
+    queryKey: ["getSpell", riot.version],
+    queryFn: () => api.getSpellInfo(riot.version),
+  },
+]);
+```
+
+## **QueryCache**
+
+- 쿼리에 대해 성공, 실패 전처리를 할 수 있다.
+
+```jsx
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error, query) => {
+      console.log(error, query);
+      if (query.state.data !== undefined) {
+        toast.error(`에러가 났어요!!: ${error.message}`);
+      },
+    },
+    onSuccess: data => {
+      console.log(data)
+    }
+  })
+});
+```
+
+## **useMutation**
+
+- 값을 바꿀때 사용하는 api. return 값은 useQuery와 동일
+- 아래는 간단한 로그인 예시
+
+```jsx
+import { useState, useContext, useEffect } from "react";
+import loginApi from "api";
+import { useMutation } from "react-query";
+
+const Index = () => {
+  const [id, setId] = useState("");
+  const [password, setPassword] = useState("");
+
+  const loginMutation = useMutation(loginApi, {
+    onMutate: (variable) => {
+      console.log("onMutate", variable);
+      // variable : {loginId: 'xxx', password; 'xxx'}
+    },
+    onError: (error, variable, context) => {
+      // error
+    },
+    onSuccess: (data, variables, context) => {
+      console.log("success", data, variables, context);
+    },
+    onSettled: () => {
+      console.log("end");
+    },
+  });
+
+  const handleSubmit = () => {
+    loginMutation.mutate({ loginId: id, password });
+  };
+
+  return (
+    <div>
+      {loginMutation.isSuccess ? "success" : "pending"}
+      {loginMutation.isError ? "error" : "pending"}
+      <input type="text" value={id} onChange={(e) => setId(e.target.value)} />
+      <input
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <button onClick={handleSubmit}>로그인</button>
+    </div>
+  );
+};
+
+export default Index;
 ```
