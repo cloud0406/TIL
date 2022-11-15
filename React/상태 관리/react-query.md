@@ -253,3 +253,89 @@ const Index = () => {
 
 export default Index;
 ```
+
+## **update후에 get 다시 실행**
+
+- react-query 장점으로 update후에 get 함수를 간단히 재실행 할 수 있음.
+- mutation 함수가 성공할 때, unique key로 맵핑된 get 함수를 `invalidateQueries`에 넣어주면 됨.
+
+```jsx
+const mutation = useMutation(postTodo, {
+  onSuccess: () => {
+    // postTodo가 성공하면 todos로 맵핑된 useQuery api 함수를 실행합니다.
+    queryClient.invalidateQueries("todos");
+  },
+});
+```
+
+- 만약 mutation에서 return된 값을 이용해서 get 함수의 파라미터를 변경해야할 경우 `setQueryData`를 사용.
+
+```jsx
+const queryClient = useQueryClient();
+
+const mutation = useMutation(editTodo, {
+  onSuccess: (data) => {
+    // data가 fetchTodoById로 들어간다
+    queryClient.setQueryData(["todo", { id: 5 }], data);
+  },
+});
+
+const { status, data, error } = useQuery(["todo", { id: 5 }], fetchTodoById);
+
+mutation.mutate({
+  id: 5,
+  name: "nkh",
+});
+```
+
+## **react Suspense와 react-query 사용하기**
+
+- react-query를 사용하는 또 하나의 이유. 비동기를 좀 더 선언적 사용할 수 있어서 많이 사용
+- [Suspense (opens new window)](https://ko.reactjs.org/docs/concurrent-mode-suspense.html)를 사용하며 loading을, [Error buundary (opens new window)](https://ko.reactjs.org/docs/error-boundaries.html#gatsby-focus-wrapper)를 사용하여 에러 핸들링을 더욱 직관적으로 할 수 있음.
+- suspense를 사용하기 위해 `QueryClient`에 옵션을 하나 추가한다.
+- 아래 방법은 global하게 suspense를 사용한다고 정의할 때 예시
+
+```jsx
+// src/index.js
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 0,
+      suspense: true,
+    },
+  },
+});
+
+ReactDOM.render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </React.StrictMode>,
+  document.getElementById("root")
+);
+```
+
+- 아래는 함수마다 suspense를 사용하는 예시
+
+```jsx
+const { data } = useQurey("test", testApi, { suspense: true });
+```
+
+- 위처럼 suspense 세팅을 완료했다면 react에서 제공하는 Suspense를 사용하면 된다.
+
+```jsx
+const { data } = useQurey("test", testApi, { suspense: true });
+
+return (
+  // isLoading이 true이면 Suspense의 fallback 내부 컴포넌트가 보여집니다.
+  // isError가 true이면 ErrorBoundary의 fallback 내부 컴포넌트가 보여집니다.
+  <Suspense fallback={<div>loading</div>}>
+    <ErrorBoundary fallback={<div>에러 발생</div>}>
+      <div>{data}</div>
+    </ErrorBoundary>
+  </Supense>
+);
+
+
+```
