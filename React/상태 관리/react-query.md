@@ -254,6 +254,20 @@ const Index = () => {
 export default Index;
 ```
 
+### \***\*react-query mutation을 state store로 쓸 수 있을까?\*\***
+
+- react-query의 useQuery는 state 저장소의 역할을 할 수 있다. useQuery의 return값은 어느 컴포넌트에서 조회하든 같은 값을 반환한다.
+  ```jsx
+  // data가 store나 마찬가지다
+  const { data, isLoading, error, refetch } = useQuery(["query-key"], () =>
+    service.api()
+  );
+  ```
+- 그렇다면 useMutation도 어느 컴포넌트에서 return값을 조회하든 같은 값을 반환할까? 만약 그렇다면 CUD request에 대한 반환값을 저장하여 store처럼 사용할 수 있으며 불필요하게 하위 컴포넌트에 props로 값을 넘기지 않아도 된다.
+- 하지만 useMutation의 return값은 useQuery처럼 동일한 값을 반환하지 않는다.
+- 즉, 예를 들어 A컴포넌트에서 useMutation으로 mutate를 실행하고, B컴포넌트에서 useMutation의 data를 사용한다면, B컴포넌트의 data는 항상 undefined가 될 것이다. 다른 컴포넌트에서 실행하는 mutate는 다른 컴포넌트의 data에 영향을 미치지 않는다.
+- 따라서 react-query를 state store로 사용하려면 제약이 있다. 데이터 조회는 get API로 만들어야 한다. → useQuery를 사용해 unique한 key값으로 데이터를 조회해야 전역으로 사용이 가능하다.
+
 ## **update후에 get 다시 실행**
 
 - react-query 장점으로 update후에 get 함수를 간단히 재실행 할 수 있음.
