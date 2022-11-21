@@ -60,3 +60,78 @@ export default Example;
 ## 스타일 상속
 
 - const 컴포넌트명 = styled.스타일컴포넌트명스타일 넣기...문법으로 만들어지며 기존에 있는 스타일컴포넌트를 상속받아 재사용한다.
+
+## Mixin css props
+
+- css props는 자주 쓰는 css 속성을 담는 변수
+- css 변수명 = css스타일... 로 사용한다.
+
+```tsx
+const flexCenter = css`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const FlexBox = div`
+  ${flexCenter}
+`;
+```
+
+## 다른 파일에서 컴포넌트 import
+
+- 해당 파일에서 정의한 css를 export하여 다른 파일에서 import 할 수 있다.
+
+```tsx
+// Login.jsx
+export const LoginContainer = styled.div`
+  background: red;
+`;
+
+// Other.jsx
+import { LoginContainer } from ".Login";
+
+const Other = () => {
+  return <LoginContainer>...</LoginContainer>;
+};
+```
+
+## 반응형 디자인
+
+- 위 예시를 응용하면 반응형을 쉽게 만들 수 있다.
+- styled-components-media (opens new window) 아래 링크 참고
+- https://styled-components.com/docs/advanced#media-templates
+
+### 예시
+
+```tsx
+import React from "react";
+import styled, { css } from "styled-components";
+
+const sizes = {
+  desktop: 1024,
+  tablet: 768,
+};
+
+// sizes 객체에 따라 자동으로 media 쿼리 함수를 만들어줍니다.
+const media = Object.keys(sizes).reduce((acc, label) => {
+  acc[label] = (...args) => css`
+    @media (max-width: ${sizes[label] / 16}em) {
+      ${css(...args)};
+    }
+  `;
+
+  return acc;
+}, {});
+
+const Box = styled.div`
+  /* props 로 넣어준 값을 직접 전달해줄 수 있습니다. */
+  background: ${(props) => props.color || "blue"};
+  padding: 1rem;
+  display: flex;
+  width: 1024px;
+  margin: 0 auto;
+  ${media.desktop`width: 768px;`}
+  ${media.tablet`width: 768px;`};
+`;
+```
