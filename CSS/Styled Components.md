@@ -135,3 +135,42 @@ const Box = styled.div`
   ${media.tablet`width: 768px;`};
 `;
 ```
+
+## global css
+
+- 프로젝트 전역으로 발동하는 css를 만들 수 있습니다.
+
+```tsx
+import styled, { createGlobalStyle } from "styled-components";
+
+export const GlobalStyle = createGlobalStyle`
+  body{padding:0; margin:0}
+`;
+```
+
+## attribute 추가
+
+```tsx
+const Input = styled.input.attrs({
+  required: true,
+})`
+  border-radius: 5px;
+`;
+```
+
+## css 모듈 분리
+
+```tsx
+const addCssType = css`
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+`;
+
+const Input = styled.input.attrs({
+  required: true,
+})`
+  border-radius: 5px;
+  ${addCssType}
+`;
+```
