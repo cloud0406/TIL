@@ -174,3 +174,58 @@ const Input = styled.input.attrs({
   ${addCssType}
 `;
 ```
+
+## global Theme
+
+- 전역으로 css를 정의할 수 있다. (색, css 등)
+
+1. root 레벨에 공동으로 사용할 theme.js를 만든다
+
+```tsx
+// theme.js
+const theme = {
+  successColor: blue;
+  dangerColor: red;
+}
+export default theme
+```
+
+2. ThemePrivider를 프로젝트의 root dir에 import하고 아래와 같이 정의한다
+
+```tsx
+import React, { Component } from "react";
+import styled, { ThemeProvider } from "styled-components";
+import theme from "./theme";
+
+class App extends Component {
+  render() {
+    return (
+      <ThemeProvider theme={theme}>
+        <Container>...</Container>
+      </ThemeProvider>
+    );
+  }
+}
+```
+
+3.전역에서 호출하여 사용한다.
+
+```tsx
+// Container.jsx
+import React, { Component } from "react";
+import styled, { ThemeProvider } from "styled-components";
+import theme from "./theme";
+
+const Container = () => {
+  return <Button>test</Button>;
+};
+
+// 아래와 같이 props.theme로 불러서 전역으로 사용한다.
+const Button = styled.button`
+  border-radius: 30px;
+  padding: 25px 15px;
+  background-color: ${(props) => props.theme.successColor};
+`;
+
+export default Container;
+```
