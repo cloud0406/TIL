@@ -229,3 +229,72 @@ const Button = styled.button`
 
 export default Container;
 ```
+
+### 글로벌 css에 minxin 기능을 넣고 어느 컴포넌트에서나 사용하게 할 수 있다.
+
+- global-styled.ts에 mixin을 정의.
+
+```tsx
+// global-styled.ts
+import { createGlobalStyle } from "styled-components";
+
+const GlobalStyle = createGlobalStyle`
+  @mixin flex($direction: 'row', $align: 'center', $justify: 'center') {
+    display: flex;
+    flex-direction: $direction;
+    align-items: $align;
+    justify-content: $justify;
+  }
+`;
+export default GlobalStyle;
+```
+
+- global-styled를 웹의 가장 상단 index.js에 import
+
+```tsx
+// src/index.js
+import GlobalStyle from "assets/styles/global-styles.ts";
+
+ReactDOM.render(
+  <Provider store={store}>
+    <GlobalStyle />
+    <App />
+  </Provider>,
+  document.getElementById("root")
+);
+```
+
+- 이후 아무 컴포넌트에서나 글로벌에서 정의한 mixin기능을 사용할 수 있다.
+
+```tsx
+function Test() {
+  return (
+    <CenterContainer>
+      <p>가운데 정렬 엘리먼트</p>
+    </CenterContainer>
+  );
+}
+const CenterContainer = styled.div`
+  @include flex(row, center, center);
+`;
+```
+
+## styled-components 만 사용하는 변수
+
+- Transient props (opens new window)를 사용.
+
+- 위 api는 v5.1 이상에서 사용 가능.
+
+- 스타일만을 위한 변수가 기본 React 노드로 전달되거나 DOM 요소로 렌더링되는 것을 방지하려면 변수 이름 앞에 $ 기호를 붙일 수 있다
+
+```tsx
+import React from "react";
+
+export default function Trans() {
+  const Comp = styled.div`
+    color: ${(props) => props.$draggable || "black"};
+  `;
+
+  return <Comp $draggable="red">Drag me!</Comp>;
+}
+```
