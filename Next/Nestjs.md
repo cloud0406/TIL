@@ -79,3 +79,68 @@ function MyApp({ Component, pageProps }) {
 
 export default MyApp;
 ```
+
+## server landing
+
+서버렌더링을 합니다. 클라이언트 렌더링과 다르게 서버렌더링을 한 페이지의 페이지 소스보기를 클릭하면 내부에 소스가 있습니다.
+
+## code splitting
+
+dynamic import를 이용하면 손쉽게 코드 스플리팅이 가능합니다.
+
+코드 스플리팅은 내가 원하는 페이지에서 원하는 자바스크립트와 라이브러리를 렌더링 하는 것입니다. 모든 번들(chunk.js)이 하나로 묶이지 않고, 각각 나뉘어 좀 더 효율적으로 자바스크립트 로딩 시간을 개선할 수 있습니다.
+
+## typescript
+
+타입스크립트 활용을 위해 웹팩을 만지거나 바벨을 만질 필요 없습니다. 타입스크립트를 설치하고 (yarn add typescript @types/node @types/react) 명령어 (yarn run dev)만 하면 자동으로 tsconfig, next-end.d.ts가 생성되어 타입스크립트로 코딩이 가능해집니다.
+
+## document.tsx
+
+meta 태그를 정의하거나, 전체 페이지에 관려하는 컴포넌트입니다.
+
+```tsx
+// pages/_document.tsx
+import Document, { Html, Head, Main, NextScript } from "next/document";
+export default class CustomDocument extends Document {
+  render() {
+    return (
+      <Html>
+        <Head>
+          // 모든페이지에 아래 메타테크가 head에 들어감 // 루트파일이기에 가능한
+          적은 코드만 넣어야함 전역 파일을 엉망으로 만들면 안된다 // 웹 타이틀,
+          ga 같은것 넣음
+          <meta property="custom" content="123123" />
+        </Head>
+        <body>
+          <Main />
+        </body>
+        <NextScript />
+      </Html>
+    );
+  }
+}
+```
+
+- 이곳에서 console은 서버에서만 보이고 클라이언트에서는 안보입니다.
+- render 요소는 반영하지만 페이지 구성 요소만 반영되고 js는 반영 하지 않기 때문에 console은 보이지 않습니다. 즉, componentDidMount 같은 훅도 실행 되지 않습니다. 정말 static한 상황에만 사용합니다.
+
+## app.tsx
+
+```tsx
+function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}
+
+export default MyApp;
+```
+
+- 이곳에서 렌더링 하는 값은 모든 페이지에 영향을 줍니다.
+- 최초로 실행되는 것은 \_app.tsx
+- app.tsx은 클라이언트에서 띄우길 바라는 전체 컴포넌트 → 공통 레이아웃임으로 최초 실행되며 내부에 컴포넌트들을 실행함
+- 내부에 컴포넌트가 있다면 전부 실행하고 html의 body로 구성
+- Component, pageProps를 받습니다.
+- 여기서 props로 받은 Component는 요청한 페이지입니다. GET / 요청을 보냈다면, Component 에는 /pages/index.js 파일이 props로 내려오게 됩니다.
+- pageProps는 페이지 getInitialProps를 통해 내려 받은 props들을 말합니다.
+- 그 다음 \_document.tsx가 실행됨
+- 페이지를 업데이트 하기 전에 원하는 방식으로 페이지를 업데이트 하는 통로
+- app.tsx에서 console.log 실행시 client, server 둘다 콘솔 찍힙니다. (localhost:3000 웹과 터미널에서 둘다 콘솔 보임)
