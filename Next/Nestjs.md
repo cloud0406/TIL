@@ -144,3 +144,92 @@ export default MyApp;
 - 그 다음 \_document.tsx가 실행됨
 - 페이지를 업데이트 하기 전에 원하는 방식으로 페이지를 업데이트 하는 통로
 - app.tsx에서 console.log 실행시 client, server 둘다 콘솔 찍힙니다. (localhost:3000 웹과 터미널에서 둘다 콘솔 보임)
+
+## import style component
+
+```tsx
+import styles from "./test.module.css";
+
+function Heading(props) {
+  // const variable = "red";
+  return (
+    <div className="title">
+      <h1 className={styles.red}>{props.heading}</h1>
+    </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <div>
+      <Heading heading="heading" />
+      <h1>스타일</h1>
+    </div>
+  );
+}
+```
+
+```tsx
+// test.module.css
+
+h1.red {
+  color: blue;
+}
+
+```
+
+## sass 사용하기
+
+따로 config 파일을 정의 하지 않고이 css 파일을 scss로 바꾸고 yarn add sass --dev 를 해주면 next에서 알아서 설정을 해줍니다.
+
+## Link 사용하기
+
+보통 페이지간 이동은 a 태그를 사용하나 next에서는 사용하지 않습니다.
+
+a 태그를 사용하면 처음 페이지에 진입시 번들 파일을 받고, a 태그에 의해 라우팅 되면 다시 번들 파일을 받기 때문입니다. 또한 redux을 쓰시는 경우 store의 state 값이 증발되는 현상도 일어납니다. 그렇기 때문에 a 태그는 전혀 다른 사이트로 페이지를 이동시켜 다시 돌아오지 않는 경우만 사용하고, 그 이외에는 모두 Link 태그를 사용합니다.
+
+```tsx
+import Link from "next/link";
+
+const Index = () => (
+  <div>
+    <Link href="/blog">
+      <a>Blog</a>
+    </Link>
+    // 동적 link시 [] 사용
+    <Link href="/blog/[address]">
+      <a>Blog</a>
+    </Link>
+  </div>
+);
+```
+
+        Copied!
+
+## 동적 url
+
+가변적으로 변하는 url에 대해 동적 url을 지원합니다. [] 문법으로 동적 페이지를 생성하는 동적 url을 만들 수 있습니다.
+
+```tsx
+// pages/[id].tsx
+
+import { useRouter } from "next/router";
+
+export default () => {
+  const router = useRouter();
+
+  return (
+    <>
+      <h1>post</h1>
+      <p>postid: {router.query.id}</p>
+    </>
+  );
+};
+
+        Copied!
+
+위처럼 작성하면 localhost:3000/123 으로 접속시 postid 가 123으로 나옵니다.
+
+pages/[값].tsx 왼쪽 페이지 구조의 값은 router.query.값과 동일합니다.
+
+```
