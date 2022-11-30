@@ -225,11 +225,47 @@ export default () => {
     </>
   );
 };
+```
 
-        Copied!
+- 위처럼 작성하면 localhost:3000/123 으로 접속시 postid 가 123으로 나옵니다.
 
-위처럼 작성하면 localhost:3000/123 으로 접속시 postid 가 123으로 나옵니다.
+- pages/[값].tsx 왼쪽 페이지 구조의 값은 router.query.값과 동일합니다.
 
-pages/[값].tsx 왼쪽 페이지 구조의 값은 router.query.값과 동일합니다.
+## prefetching
 
+백그라운드에서 페이지를 미리 가져옵니다. 기본값은 true. `<Link />` 뷰포트에있는 모든 항목 (초기 또는 스크롤을 통해)이 미리 로드됩니다. 정적 생성을 사용하는 JSON페이지는 더 빠른 페이지 전환을 위해 데이터가 포함 된 파일을 미리 로드합니다.
+
+이건 Link 컴포넌트를 사용해서 이뤄지는건데요. 링크 컴포넌트를 렌더링할때 `<Link prefetch href="...">` 형식으로 prefetch 값을 전달해주면 데이터를 먼저 불러온다음에 라우팅을 시작합니다.
+
+프로덕션 레벨에서만 이루어집니다.
+
+## next/router 사용법
+
+react의 react-router-dom과 사용 방법은 거의 유사합니다.
+
+link에 있는 preferch 기능도 사용 가능합니다.
+
+```tsx
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+import posts from "../posts.json";
+
+export default () => {
+  const router = useRouter();
+
+  const post = posts[router.query.id as string];
+  if (!post) return <p>noting</p>;
+
+  useEffect(() => {
+    router.prefetch("/test");
+  }, []);
+
+  return (
+    <>
+      <h1>{post.title}</h1>
+      <h1>{post.content}</h1>
+      <button onClick={() => router.push("test")}>go to Test</button>
+    </>
+  );
+};
 ```
