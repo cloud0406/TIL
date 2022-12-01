@@ -269,3 +269,70 @@ export default () => {
   );
 };
 ```
+
+## server side lifeCycle
+
+위 포스팅을 통해 getInitialProps를 파악 하였다면, lifeCycle이 이해할 수 있습니다.
+
+nextJs 서버가 GET 요청을 받는다.
+GET 요청에 맞는 pages/Component를 찾는다.
+\_app.tsx의 getInitialProps가 있다면 실행한다.
+route에 맞는 페이지의 Component의 getInitialProps가 있다면 실행한다. pageProps들을 받아온다.
+\_document.tsx의 getInitialProps가 있다면 실행한다. pageProps들을 받아온다.
+모든 props들을 구성하고, \_app.tsx -> page Component 순서로 렌더링
+모든 Content를 구성하고 \_document.tsx를 실행하여 html 형태로 출력한다.
+
+## custom 태그로 head 태그 옮기기
+
+우리는 페이지의 header로 다음과 같은 정보를 추가할 수 있습니다.
+
+페이지 제목을 커스텀하고 싶을때
+meta 태그를 변경하고 싶을때
+next/head로 부터 Head 컴포넌트를 받아 모든 컴포넌트에서 사용할 수 있습니다.
+
+```tsx
+import Head from "next/head";
+
+export default () => (
+  <div>
+    <Head>
+      <title>새로 만들어진 타이틀 입니다</title>
+    </Head>
+    <div>...</div>
+  </div>
+);
+```
+
+next.js가 해당 컴포넌트가 mount 할때, Head내 태그들을 페이지의 HTML의 Head에 포함 시킵니다. 마찬가지로 unMount 할때, 해당 태그를 제거합니다.
+
+## dynamic meta tag
+
+위 예시처럼 정적으로 태그를 달때도 있지만 정적으로 들어가야할 태그가 바뀔 경우도 있습니다.
+next.js meta tag 동적 content 할당하기 (opens new window)이 글에서 동적으로 meta 태그에 값을 할당하는 방법에 대해 알아볼 수 있습니다.
+
+## dynamic component import
+
+dynamic component import는 react에서 lazy하게 component를 import 해오는 방식과 유사합니다.
+dynamic하게 처음 보여줘도 안되는 컴포넌트는 import 하지 않게 됨으로, 초기 화면 렌더링 속도를 상승시키기 위해 사용합니다.
+주의점은 페이지에 진입할때 맨처음 보이는 컴포넌트라면 dynamic 메소드를 사용할 이유가 없습니다. (왜 그런지 모르겠다면 dynamic components를 사용하는 이유에 대해 다시 생각해보시기 바랍니다)
+아래 예시로 next에서 사용하는 방법과 typescript에서 component에 props을 내려줄때 type 정의를 어떻게 하는지 알아봅니다.
+
+```tsx
+import React, { useState } from "react";
+import dynamic from "next/dynamic";
+
+const DynamicComponent = dynamic<{ nowTab: number }>(
+  () => import("./DynamicComponent")
+);
+
+const Index = () => {
+  const [nowTab, setNowTab] = useState(0);
+
+  return (
+    <>
+      {nowTab === 0 && <div>0 tab</div>}
+      {nowTab === 1 && <DynamicComponent nowTab={nowTab} />}
+    </>
+  );
+};
+```
