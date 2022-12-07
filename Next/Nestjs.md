@@ -336,3 +336,39 @@ const Index = () => {
   );
 };
 ```
+
+## next.js meta tag 동적 content 할당하기
+
+- nextjs에서는 Head를 이용하여 seo에 필요한 meta 태그에 접근할 수 있다.
+- 이 meta 태그에 들어가는 content는 꼭 static한 상태여야만 html의 head에 들어갑니다 -> 동적인 상태에서는 html head에 들어가지 않음
+
+## getInitalProps를 이용하여 값 받아오기
+
+- 간단하게 getInitalProps를 이용하여 돔이 구성되기 전에 값을 가져오면 된다.
+- 예시
+
+```tsx
+import React from "react";
+import Head from "next/head";
+
+export default function Test({ title }) {
+  return (
+    <>
+      <Head>
+        <meta property="og:title" content={title ? title : "default title"} />
+      </Head>
+      <div>dynamic meta test</div>
+    </>
+  );
+}
+
+Test.getInitialProps = () => {
+  return { title: "seo title" };
+};
+```
+
+### 주의사항
+
+- 개발환경에서 위 작업이 가능한 이유는 로컬에서 next가 서버 역할을 해주기 때문에 가능
+- 만약 이 작업이 운영(production)에 올라가려면 next build를 거쳐야하는데 운영에 next가 걸쳐있는 서버가 있지 않다면 build 실패가 뜰 것이다. 그렇기 때문에 웹용 next 서버를 먼저 띄워야함.
+- 서버가 없다면 getInitialProps를 사용 못하게 되고 위 예시의 title이라는 값이 html이 만들어질 때 어디에도 존재하지 않기 때문에 content에는 defailt title이 들어감.
