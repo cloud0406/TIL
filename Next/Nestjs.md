@@ -372,3 +372,95 @@ Test.getInitialProps = () => {
 - 개발환경에서 위 작업이 가능한 이유는 로컬에서 next가 서버 역할을 해주기 때문에 가능
 - 만약 이 작업이 운영(production)에 올라가려면 next build를 거쳐야하는데 운영에 next가 걸쳐있는 서버가 있지 않다면 build 실패가 뜰 것이다. 그렇기 때문에 웹용 next 서버를 먼저 띄워야함.
 - 서버가 없다면 getInitialProps를 사용 못하게 되고 위 예시의 title이라는 값이 html이 만들어질 때 어디에도 존재하지 않기 때문에 content에는 defailt title이 들어감.
+
+## next.js getInitialProps 사용법
+
+- 서버사이드 렌더링을 하는 nextJs에서 컴포넌트는 각 페이지마다 사전에 불러와야할 데이터가 있다.(이하 data fetching) react, vue같은 Client Side Rendering (CSR)의 경우는 useEffect, created 함수를 이용하여 data fetching을 한다.
+- 서버사이드에서 실행하는 next에서는 getInitialProps를 이용하여 data fetching 작업을 한다.
+- next v9 이상에서는 getInitialProps 대신 getStaticProps, getStaticPaths, getServerSideProps을 사용하도록 가이드 한다.
+
+## getStaticProps
+
+- 빌드시 고정되는 값, 빌드 이후 값 변경 불가
+
+```tsx
+function Blog({ posts }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li>{post.title}</li>
+      ))}
+    </ul>
+  );
+}
+
+export async function getStaticProps() {
+  const res = await fetch("https://.../posts");
+  const posts = await res.json();
+
+  // By returning { props: posts }, the Blog component
+  // will receive `posts` as a prop at build time
+  return {
+    props: {
+      posts,
+    },
+  };
+}
+
+export default Blog;
+```
+
+- docs 예제에서는 fetch를 통해 게시물을 가져오고 그 게시물의 title을 보여줍니다.
+
+## getStaticPatch
+
+- 빌드 타임 때, 정적으로 렌더링할 경로 설정
+  이곳에 정의하지 않은 하위 경로는 접근해도 페이지가 안뜸
+  동적라우팅 : 라우팅 되는 경우의 수 따져서 하위로 넣음
+
+/pages/dyna/[dynamic].js: /dyna/동적인값
+
+```tsx
+// This function gets called at build time
+export async function getStaticPaths() {
+  return {
+    //빌드 타임 때 아래 정의한  /dyna/1,  /dyna/2, ... /dyna/동적인값 경로만 pre렌더링.
+    paths: [
+      { params: { dynamic: 1 } },
+      { params: { dynmic: 2 } }
+      ......
+      { params: { dynmic: 동적인값 } }
+    ],
+    // 만들어지지 않은 것도 추후 요청이 들어오면 만들어 줄 지 여부.
+    fallback: true,
+  }
+}
+```
+
+## getServerSideProps
+
+```tsx
+function Page({ data }) {
+  // Render data...
+}
+
+// This gets called on every request
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  // Fetch data from external API
+  const res = await fetch(`https://.../data`);
+  const data = await res.json();
+
+  // Pass data to the page via props
+  return { props: { data } };
+};
+
+export default Page;
+```
+
+각 요청에 따라 서버로부터 데이터를 가져옵니다.
+
+### 언제 쓰는가?
+
+- getServerSideProps는 데이터 요청시 인출해야 페이지를 미리 렌더링해야하는 경우에만. TTFB (Time to First byte)는 getStaticProps서버가 모든 요청에 ​​대해 결과를 계산해야하고 추가 구성 없이는 결과를 CDN에 의해 ​​캐시 할 수 없기 때문에 더 느립니다.
+
+- 데이터를 미리 렌더링 할 필요가없는 경우 클라이언트 측에서 데이터를 가져 오는 것을 고려해야합니다.
