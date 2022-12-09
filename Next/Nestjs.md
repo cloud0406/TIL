@@ -464,3 +464,34 @@ export default Page;
 - getServerSideProps는 데이터 요청시 인출해야 페이지를 미리 렌더링해야하는 경우에만. TTFB (Time to First byte)는 getStaticProps서버가 모든 요청에 ​​대해 결과를 계산해야하고 추가 구성 없이는 결과를 CDN에 의해 ​​캐시 할 수 없기 때문에 더 느립니다.
 
 - 데이터를 미리 렌더링 할 필요가없는 경우 클라이언트 측에서 데이터를 가져 오는 것을 고려해야합니다.
+
+## 클라이언트 측에서 데이터 가져오기
+
+- 페이지에 자주 업데이트되는 데이터가 포함되어 있고 데이터를 미리 렌더링 할 필요가없는 경우 클라이언트 측에서 데이터를 가져올 수 있다. 이에 대한 예는 사용자 별 데이터이며 작동 방식은 다음과 같다.
+
+- 먼저 데이터가 없는 페이지를 즉시 표시한다. 페이지의 일부는 정적 생성을 사용하여 미리 렌더링 할 수 있으며 누락 된 데이터에 대한 로드 상태를 표시 할 수 있다.
+- 이후 다음 클라이언트 측에서 데이터를 가져와 준비가 되면 표시한다.
+- 예를 들어 이 접근 방식은 사용자 대시 보드 페이지에 적합하며 대시 보드는 비공개 사용자 별 페이지이기 때문에 SEO는 관련이 없으며 페이지를 미리 렌더링 할 필요가 없다. 데이터는 자주 업데이트되므로 요청 시간 데이터 가져오기가 필요하다.
+
+## SWR
+
+- next에서 만든 SWR을 사용하여 client side에서 데이터 패치를 한다.
+
+```tsx
+import useSWR from "swr";
+
+function Profile() {
+  const { data, error } = useSWR("/api/user", fetch);
+
+  if (error) return <div>failed to load</div>;
+  if (!data) return <div>loading...</div>;
+  return <div>hello {data.name}!</div>;
+}
+```
+
+- seo 필요한 페이지면 getServerSideProps를 쓰고 비공개 페이지일 경우는 클라이언트 측에서 가져온다 (getServerSideProps를 남발하면 서버가 모든 요청을 계산하고, 값 캐쉬가 힘들기에 비효율적)
+
+## getInitialProps 이점
+
+- 속도가 빨라진다. 서버는 data fetching만, 브라우저는 렌더링만 함으로 연산을 브라우저와 서버가 각각 나누어 분담하게되어 그만큼 속도가 빨라진다.
+- 함수형 컴포넌트로 next를 코딩할 경우, 렌더링 하는 함수와 data fetching을 하는 함수가 분리됨으로 개발자의 입장에서 로직 파악이 쉽다.
