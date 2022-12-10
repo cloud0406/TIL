@@ -495,3 +495,107 @@ function Profile() {
 
 - 속도가 빨라진다. 서버는 data fetching만, 브라우저는 렌더링만 함으로 연산을 브라우저와 서버가 각각 나누어 분담하게되어 그만큼 속도가 빨라진다.
 - 함수형 컴포넌트로 next를 코딩할 경우, 렌더링 하는 함수와 data fetching을 하는 함수가 분리됨으로 개발자의 입장에서 로직 파악이 쉽다.
+
+### 사용법
+
+#### 오류코드
+
+- data fetching 할 mok 데이터 (src/posts.json)를 먼저 정의.
+
+```tsx
+{
+  "test": {
+    "title": "test post",
+    "content": "test content"
+  },
+  "second": {
+    "title": "second post",
+    "content": "second content"
+  }
+}
+```
+
+- 데이터를 보여줄 컴포넌트.
+
+```tsx
+/ src/aegps / [id].tsx;
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+import posts from "../posts.json";
+
+const Posts = () => {
+  const router = useRouter();
+  const post = posts[router.query.id];
+
+  return (
+    <>
+      <h1>{post.title}</h1>
+      <h1>{post.content}</h1>
+    </>
+  );
+};
+
+export default Posts;
+```
+
+- 위처럼 코드를 작성하고 yarn run dev 후에 localhost:3000/test로 접속합니다.
+
+- [id].tsx가 렌더링 될 때, post 값이 없기 때문에 title이 없다는 에러가 납니다.
+
+- CSR에서는 이럴때 if (!post) return <p></p>; 이러한 코드를 추가하여 data fetching이 되기를 기다립니다.
+
+```tsx
+// src/pages/[id].tsx
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+import posts from "../posts.json";
+
+const Posts = () => {
+  const router = useRouter();
+  const post = posts[router.query.id];
+  if (!post) return <p></p>;
+
+  return (
+    <>
+      <h1>{post.title}</h1>
+      <h1>{post.content}</h1>
+    </>
+  );
+};
+
+export default Posts;
+```
+
+ssr에서는 getInitalProps를 이용하여 데이터를 미리 받아오고, 렌더링 할 당시에는 이미 값이 있기 때문에 렌더링이 되는 방식으로 사용한다.
+
+```tsx
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+import posts from "../posts.json";
+
+const Posts = (props: { post: { title: string; content: string } }) => {
+  const router = useRouter();
+
+  return (
+    <>
+      <h1>{props.post.title}</h1>
+      <h1>{props.post.content}</h1>
+    </>
+  );
+};
+
+Posts.getInitialProps = (context) => {
+  // context.query.id = 'test'
+  return {
+    post: posts[context.query.id],
+  };
+};
+
+export default Posts;
+```
+
+- 위처럼 컴포넌트의 외부에 getInitialProps 함수를 선언만합니다. 실행은 렌더링 될때 알아서 실행된다.
+
+- getInitialProps 내부에는 context, component등 여러 객체가 있으며 그 중 query.id에 접근하여 우리의 url인 'test'를 받아오고, mok data에서 test 객체를 꺼내와 post에 담는다.
+
+- post는 컴포넌트의 props에 담겨서 컴포넌트가 렌더링 될때 바로 사용 가능하다.
