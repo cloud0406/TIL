@@ -599,3 +599,106 @@ export default Posts;
 - getInitialProps 내부에는 context, component등 여러 객체가 있으며 그 중 query.id에 접근하여 우리의 url인 'test'를 받아오고, mok data에서 test 객체를 꺼내와 post에 담는다.
 
 - post는 컴포넌트의 props에 담겨서 컴포넌트가 렌더링 될때 바로 사용 가능하다.
+
+## 주의사항
+
+- 하나의 페이지에서는 하나의 getInitialProps만 실행됨
+- 페이지가 렌더링 될때 next 내부에서 거치는 순서는 \_app -> page component
+- 즉, 예시 코드로 말씀드리면 \_app.tsx가 실행되고 [id].tsx가 실행됨.
+
+- 만약 \_app에 getInitialProps를 정의했다면, 하위 컴포넌트에서는 getInitialProps는가 실행되지 않는다.
+
+- 하위 컴포넌트에서도 getInitialProps 값을 반영하려면 아래와 같이 \_app.tsx에 코드를 추가.
+
+```tsx
+// src/_app.tsx
+import "./globals.css";
+
+function MyApp({ Component, pageProps }) {
+  return <Component ponent {...pageProps} />;
+}
+
+MyApp.getInitialProps = async ({ Component, ctx }) => {
+  let pageProps = {};
+  // 하위 컴포넌트에 getInitialProps가 있다면 추가 (각 개별 컴포넌트에서 사용할 값 추가)
+  if (Component.getInitialProps) {
+    pageProps = await Component.getInitialProps(ctx);
+  }
+
+  // _app에서 props 추가 (모든 컴포넌트에서 공통적으로 사용할 값 추가)
+  pageProps = { ...pageProps, posttt: { title: 11111, content: 3333 } };
+
+  return { pageProps };
+};
+
+export default MyApp;
+```
+
+위 예시 코드처럼 모든 컴포넌트에서 추가할 값을 \_app.tsx에서 추가하고, 각 개별 컴포넌트에서 사용할 값은 개별 컴포넌트에서 추가하면 된다.
+
+## getInitialProps는 서버에서 실행
+
+- 브라우저 api (setTimeout, window.xxx, document.xxx)는 이곳에서 실행하면 안된다.
+
+## Context Object
+
+- pathname - 현재 pathname (/user?type=normal-> /user)
+- query - 현재 query를 객체로 (http://localhost:3000/blog/test -> {id: 'test'}, /post?type=secret -> {type: 'secret'})
+- asPath - 전체 path (http://localhost:3000/blog/test -> /blog/[id], /blog/test)
+- req - HTTP request object (server only)
+- res - HTTP response object (server only)
+- err - Error object if any error is encountered during the rendering
+
+## shallow route와 getInitialProps과 관계
+
+- 아래 내용들은 getServerSideProps, getStaticProps, getInitialProps 모두 동일하게 적용.
+
+- shallow routing은 getInitialProps를 이용하여 데이터를 가지오지 않고도 url을 변경 할 수 있다.
+
+- 즉, 불필요한 서버 연산을 최소화 할 수 있고, 필요한 상태 값은 아래 예시코드 처럼 router 객체에 넣어서 전달할 수 있다.
+
+```tsx
+router.push(
+  {
+    pathname: "/cars?model=bmw",
+    query: { ...values, page: 1 },
+  },
+  undefined,
+  { shallow: true }
+);
+```
+
+- 위의 예제로 보면 원래는 /cars 페이지에 있다가 어떤 이벤트를 통해 "/cars?model=bmw"로 바뀜.
+
+- 페이지는 교체되지 않고, url만 바뀌는 경우 입니다. url이 변경되는 것은 componentDidUpdate, useEffect를 통해 감지 할 수 있다.
+
+```tsx
+componentDidUpdate(prevProps) {
+  const { pathname, query } = this.props.router
+  // verify props have changed to avoid an infinite loop
+  if (query.counter !== prevProps.router.query.counter) {
+    // fetch data based on the new query
+  }
+}
+
+```
+
+## 주의사항
+
+- shallow routing은 동일 페이지의 url의 변경에서만 작동.
+- 즉, 다른 페이지로 이동시 새 페이지가 로드하고, getInitialProps는 실행됩니다. 예시로 보자면 현재 url은 /cars 이다.
+
+```tsx
+router.push(
+  {
+    pathname: "/users",
+    query: { ...values, page: 1 },
+  },
+  undefined,
+  { shallow: true }
+);
+```
+
+- 위처럼 /users로 url이 바뀌면 페이지가 바뀌었기 때문에 새로운 페이지가 로드되고 getInitialProps가 실행됨으로 data fetching을 하게됨. 즉, shallow routing이 의미가 없음.
+
+- 같은 페이지에서 url이 바뀌는데 getInitialProps가 실행됨으로 굳이 같은 data fetching을 할 필요가 없을 때, shallow routing을 사용하면된다.
