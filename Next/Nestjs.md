@@ -702,3 +702,67 @@ router.push(
 - 위처럼 /users로 url이 바뀌면 페이지가 바뀌었기 때문에 새로운 페이지가 로드되고 getInitialProps가 실행됨으로 data fetching을 하게됨. 즉, shallow routing이 의미가 없음.
 
 - 같은 페이지에서 url이 바뀌는데 getInitialProps가 실행됨으로 굳이 같은 data fetching을 할 필요가 없을 때, shallow routing을 사용하면된다.
+
+## next.js에서 material-ui 사용하기
+
+### nextjs에서 mui(material-ui)를 적용하는 방법
+
+- 이 이후에는 다음은 styled-components와 mui를 동시에 사용하는 방법 (opens new window)
+
+## 프로젝트 세팅
+
+next 프로젝트를 설치하고 이후 필요한 디펜던시를 설치
+
+```tsx
+npx create-next-app my-app
+
+cd my-app
+yarn add @emotion/react @emotion/styled @mui/icons-material @mui/material @mui/styles
+```
+
+## 세팅하기
+
+- nextjs는 서버사이드랜더링을 하기 때문에 react에서 mui를 사용하는 것 처럼 손쉽게 반영 되지 않다. 그래서 몇가지 사전작업을 해야한다.
+
+## \_document.tsx
+
+- \_document는 서버사이드에 관여하는 로직 또는 static한 로직을 추가하는데 사용.
+- ssr 지원을 위해 \_dococument.tsx에 mui에 대한 사전 작업을 한다
+- 간단히 말씀드리면 서버에서 받아온 html, css와 클라이언트가 렌더링한 html, css가 다르면 next에서 warning을 띄우게 된다. 그래서 서버단에서 mui를 지원함으로 서버와 클라이언트간 간극을 맞추기 위해 아래와 같이 구현한다.
+
+```tsx
+import React from "react";
+import Document, { Html, Head, Main, NextScript } from "next/document";
+import { ServerStyleSheets } from "@mui/styles";
+
+export default class MyDocument extends Document {
+  render() {
+    return (
+      <Html>
+        <body>
+          <Head></Head>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    );
+  }
+}
+
+MyDocument.getInitialProps = async (ctx) => {
+  const materialSheets = new ServerStyleSheets();
+  const originalRenderPage = ctx.renderPage;
+
+  ctx.renderPage = () =>
+    originalRenderPage({
+      enhanceApp: (App) => (props) =>
+        materialSheets.collect(<App {...props} />),
+    });
+
+  const initialProps = await Document.getInitialProps(ctx);
+  return {
+    ...initialProps,
+    styles: <>{initialProps.styles}</>,
+  };
+};
+```
